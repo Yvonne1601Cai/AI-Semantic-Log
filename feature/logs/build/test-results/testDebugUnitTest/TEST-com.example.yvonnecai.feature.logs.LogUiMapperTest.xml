@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.example.yvonnecai.feature.logs.LogUiMapperTest" tests="4" skipped="0" failures="0" errors="0" timestamp="2026-10-18T17:56:43.944Z" hostname="ycai-L44XJC7.dyn.pinadmin.com" time="0.001">
+  <properties/>
+  <testcase name="ring data carries shares density and counts" classname="com.example.yvonnecai.feature.logs.LogUiMapperTest" time="0.0"/>
+  <testcase name="groups pick their rows by index and reuse the same instances" classname="com.example.yvonnecai.feature.logs.LogUiMapperTest" time="0.0"/>
+  <testcase name="details include formatted times raw metadata and copy text" classname="com.example.yvonnecai.feature.logs.LogUiMapperTest" time="0.0"/>
+  <testcase name="rows keep entry order and preformat the time" classname="com.example.yvonnecai.feature.logs.LogUiMapperTest" time="0.0"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

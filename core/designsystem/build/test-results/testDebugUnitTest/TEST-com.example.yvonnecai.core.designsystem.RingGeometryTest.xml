@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.example.yvonnecai.core.designsystem.RingGeometryTest" tests="7" skipped="0" failures="0" errors="0" timestamp="2026-10-18T17:55:49.958Z" hostname="ycai-L44XJC7.dyn.pinadmin.com" time="0.016">
+  <properties/>
+  <testcase name="a single segment is a closed circle without a gap" classname="com.example.yvonnecai.core.designsystem.RingGeometryTest" time="0.013"/>
+  <testcase name="segments run clockwise from 12 o'clock with centred gaps" classname="com.example.yvonnecai.core.designsystem.RingGeometryTest" time="0.0"/>
+  <testcase name="zero share segments are skipped but keep their original index" classname="com.example.yvonnecai.core.designsystem.RingGeometryTest" time="0.001"/>
+  <testcase name="no shares give no arcs" classname="com.example.yvonnecai.core.designsystem.RingGeometryTest" time="0.0"/>
+  <testcase name="five equal segments never exceed the full circle" classname="com.example.yvonnecai.core.designsystem.RingGeometryTest" time="0.0"/>
+  <testcase name="reveal clips arcs at the revealed angle" classname="com.example.yvonnecai.core.designsystem.RingGeometryTest" time="0.0"/>
+  <testcase name="reveal of zero draws nothing and reveal of one draws everything" classname="com.example.yvonnecai.core.designsystem.RingGeometryTest" time="0.0"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

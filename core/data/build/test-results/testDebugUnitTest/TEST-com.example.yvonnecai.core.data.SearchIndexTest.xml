@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.example.yvonnecai.core.data.SearchIndexTest" tests="10" skipped="0" failures="0" errors="0" timestamp="2026-10-18T17:55:50.071Z" hostname="ycai-L44XJC7.dyn.pinadmin.com" time="0.022">
+  <properties/>
+  <testcase name="extra whitespace between terms is ignored" classname="com.example.yvonnecai.core.data.SearchIndexTest" time="0.0"/>
+  <testcase name="matching is case-insensitive" classname="com.example.yvonnecai.core.data.SearchIndexTest" time="0.0"/>
+  <testcase name="searches 5000 entries correctly" classname="com.example.yvonnecai.core.data.SearchIndexTest" time="0.02"/>
+  <testcase name="size equals the number of indexed entries" classname="com.example.yvonnecai.core.data.SearchIndexTest" time="0.0"/>
+  <testcase name="results are ascending positions in the master list" classname="com.example.yvonnecai.core.data.SearchIndexTest" time="0.001"/>
+  <testcase name="tag severity id and session are searchable" classname="com.example.yvonnecai.core.data.SearchIndexTest" time="0.0"/>
+  <testcase name="blank query matches every entry in order" classname="com.example.yvonnecai.core.data.SearchIndexTest" time="0.0"/>
+  <testcase name="every term must match" classname="com.example.yvonnecai.core.data.SearchIndexTest" time="0.0"/>
+  <testcase name="partial words match" classname="com.example.yvonnecai.core.data.SearchIndexTest" time="0.0"/>
+  <testcase name="no match returns an empty result" classname="com.example.yvonnecai.core.data.SearchIndexTest" time="0.0"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

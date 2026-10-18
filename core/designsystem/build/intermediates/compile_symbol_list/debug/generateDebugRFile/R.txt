@@ -1,0 +1,7 @@
+int string severity_debug 0x0
+int string severity_error 0x0
+int string severity_fatal 0x0
+int string severity_indicator_description 0x0
+int string severity_indicator_label 0x0
+int string severity_info 0x0
+int string severity_warn 0x0

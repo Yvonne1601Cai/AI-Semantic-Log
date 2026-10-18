@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.example.yvonnecai.core.data.LogGroupingTest" tests="7" skipped="0" failures="0" errors="0" timestamp="2026-10-18T17:55:49.972Z" hostname="ycai-L44XJC7.dyn.pinadmin.com" time="0.02">
+  <properties/>
+  <testcase name="groups come out newest first" classname="com.example.yvonnecai.core.data.LogGroupingTest" time="0.014"/>
+  <testcase name="no indices gives no groups" classname="com.example.yvonnecai.core.data.LogGroupingTest" time="0.001"/>
+  <testcase name="a filtered subset only groups the selected indices" classname="com.example.yvonnecai.core.data.LogGroupingTest" time="0.002"/>
+  <testcase name="group size matches its indices" classname="com.example.yvonnecai.core.data.LogGroupingTest" time="0.0"/>
+  <testcase name="error count only counts ERROR and FATAL" classname="com.example.yvonnecai.core.data.LogGroupingTest" time="0.001"/>
+  <testcase name="group key is the start of the minute" classname="com.example.yvonnecai.core.data.LogGroupingTest" time="0.0"/>
+  <testcase name="entries of the same minute share a group" classname="com.example.yvonnecai.core.data.LogGroupingTest" time="0.0"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>
