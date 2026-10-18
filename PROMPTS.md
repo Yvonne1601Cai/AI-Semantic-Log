@@ -280,6 +280,46 @@ Entry #1 is the kickoff prompt above, written by me.
 - **Produced:** 67 unit tests across `core:data`, `core:network`, `core:designsystem` and
   `feature:logs`. No mocked network, no Robolectric, no UI tests.
 
+## #9 Code review and fix session
+
+- **Prompts:** "review code in current repo and tell me what could be improved", then "help me
+  fix them", then three small UI requests from me (count text overlapping the search border;
+  hide the session id; keep the search bar on one line), then "help me review again".
+- **Produced:** a prioritized review, then these changes:
+  - `LogsUiState` became `query` plus a sealed `Loading | Error | Loaded` content.
+  - New `LogDataset.search(query)` so the ViewModel no longer works with positional indices.
+  - `LogDataset.droppedCount` reports entries discarded while mapping.
+  - The search query is kept in `SavedStateHandle`; the details sheet closes on reload.
+  - The ring intro animation plays once instead of every time it scrolls back into view.
+  - The Copy text is built from string resources; "Raw metadata" was relabeled "Metadata"
+    because it shows only the fields the app models.
+  - The "Copied" label resets after 2 seconds; rows have a click label and button role.
+  - Cleanup: template code in the theme files, unused strings, catalog entries and colors,
+    `allowBackup=false`, a redundant manifest label, an obsolete `mipmap-anydpi-v26` folder.
+  - The search field is disabled while loading or after a failed load.
+  - Row times and group headers use `DateTimeFormatter.ofLocalizedTime(FormatStyle.MEDIUM)` and a
+    localized date plus short time, so 12-hour locales show AM/PM. `LogFormatters` takes a
+    `Locale` so tests are deterministic.
+  - 13 new tests (80 in total), including search pipeline, dropped entries, formatters,
+    saved query and details closing on retry.
+- **Decisions (mine):**
+  - Hide the session id and shorten the search placeholder to "Search logs". This overrides
+    the kickoff prompt, which asked for the session id in the screen header.
+  - I made the commit myself.
+  - Chose the locale-based time style over following the device's 12/24-hour toggle.
+  - Deliberately left alone: R8 and release tuning, Gradle convention plugins and Compose UI
+    tests (all excluded by the kickoff prompt), dependency upgrades (compileSdk 37 is not
+    installed), and the 150 ms debounce on a restored query. The demo video was re-recorded
+    and shrunk from a 26 MB WebM to a 0.7 MB H.264 MP4 (`docs/demo.mp4`, audio removed) with
+    `ffmpeg`; the old 34 MB `docs/demo.webm` was removed from the working tree but stays in git
+    history.
+- **Where the AI was wrong:** it first called the ViewModel's second `flowOn` redundant. It is
+  not: the repository's `flowOn` only covers the repository, and the ViewModel's covers row
+  formatting. The AI retracted the claim and left the code unchanged.
+- **Checked:** `./gradlew testDebugUnitTest assembleDebug lintDebug` passes with 0 lint
+  errors. These changes were not re-run on the emulator, so the UI edits are not verified
+  on a device.
+
 **Hand edits by me:** _fill in before submitting: anything I wrote or changed myself, and
 any other AI tools I used._
 
@@ -300,7 +340,8 @@ any other AI tools I used._
 
 ## How it was verified
 
-- `./gradlew assembleDebug testDebugUnitTest`: build succeeds and 67 tests pass, 0 failures.
+- `./gradlew assembleDebug testDebugUnitTest`: build succeeds and 80 tests pass, 0 failures
+  (67 before the review session in #9). `lintDebug` reports 0 errors.
 - Module boundary checked with a probe that fails to compile.
 - Run on the `Medium_Phone` emulator (API 37, arm64, 1080x2400) with the real 5,000-entry endpoint:
   - Load: fetch + decode 1.5-1.75 s (mostly network), map + sort + index about 55 ms, over four
@@ -310,5 +351,7 @@ any other AI tools I used._
     is one two-frame hitch when a new result set is applied.
   - Checked on screen: ring and counts follow the filter, the no-results state, and the
     details sheet (severity chip, Copy, local and UTC time, raw metadata).
+- The emulator measurements and on-screen checks above predate the review session (#9) and were
+  not repeated afterwards.
 - Not yet checked: offline/error state on device, rotation, light theme, and the Copy button's
   clipboard content. Numbers come from an emulator, not a physical device.

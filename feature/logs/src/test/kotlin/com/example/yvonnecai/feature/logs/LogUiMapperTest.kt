@@ -11,10 +11,11 @@ import org.junit.Assert.assertTrue
 import org.junit.Test
 import java.time.Instant
 import java.time.ZoneOffset
+import java.util.Locale
 
 class LogUiMapperTest {
 
-    private val mapper = LogUiMapper(LogFormatters(ZoneOffset.UTC))
+    private val mapper = LogUiMapper(LogFormatters(ZoneOffset.UTC, Locale.GERMANY))
 
     private fun entry(id: String, severity: Severity = Severity.INFO, timestamp: String = "2026-01-22T15:48:17.892Z") =
         LogEntry(id, Instant.parse(timestamp), severity, "network", "Connection timed out", 2040, true)
@@ -36,7 +37,7 @@ class LogUiMapperTest {
 
         val group = groups.single()
         assertEquals(start, group.key)
-        assertTrue(group.title.endsWith("22, 15:48")) // month name depends on the locale
+        assertEquals("22.01.2026, 15:48", group.title)
         assertEquals(2, group.rowCount)
         assertEquals(50, group.errorPercent)
         assertSame(rows[0], group.rows[0])

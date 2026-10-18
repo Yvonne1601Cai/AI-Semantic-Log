@@ -22,7 +22,7 @@ data class LogRowUi(
  * A sticky-header bucket and its rows.
  *
  * @property key stable list key (start of the minute, epoch millis).
- * @property title formatted bucket label, e.g. `Jan 22, 15:48`.
+ * @property title formatted bucket label, e.g. `Jan 22, 2026, 3:48 PM`.
  * @property errorPercent share of ERROR + FATAL entries in this bucket, `0..100`.
  */
 @Immutable

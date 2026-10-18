@@ -26,6 +26,7 @@ import org.junit.Test
 import java.io.IOException
 import java.time.Instant
 import java.time.ZoneOffset
+import java.util.Locale
 
 @OptIn(ExperimentalCoroutinesApi::class)
 class LogsViewModelTest {
@@ -60,7 +61,7 @@ class LogsViewModelTest {
 
     private fun viewModel(savedStateHandle: SavedStateHandle = SavedStateHandle()) = LogsViewModel(
         repository = repository,
-        mapper = LogUiMapper(LogFormatters(ZoneOffset.UTC)),
+        mapper = LogUiMapper(LogFormatters(ZoneOffset.UTC, Locale.GERMANY)),
         savedStateHandle = savedStateHandle,
         defaultDispatcher = mainDispatcherRule.dispatcher,
     )

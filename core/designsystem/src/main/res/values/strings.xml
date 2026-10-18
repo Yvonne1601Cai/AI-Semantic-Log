@@ -8,5 +8,5 @@
 
     <!-- Severity indicator -->
     <string name="severity_indicator_label">errors</string>
-    <string name="severity_indicator_description">Error density %1$d percent. %2$d of %3$d logs are errors or fatal.</string>
+    <string name="severity_indicator_description">Error density %1$d%%. %2$d of %3$d logs are errors or fatal.</string>
 </resources>

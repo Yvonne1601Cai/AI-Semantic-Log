@@ -9,7 +9,7 @@ Coroutines and Flow.
 
 ## Screen recording
 
-[Watch the demo](docs/demo.webm) (about 33 MB, WebM).
+[Watch the demo](docs/demo.mp4) (26 seconds, 720x1600, about 0.7 MB, MP4).
 
 ## Setup
 
@@ -91,14 +91,14 @@ callback takes a plain id.
 
 ## Testing
 
-`./gradlew testDebugUnitTest` runs 78 JVM unit tests, all passing:
+`./gradlew testDebugUnitTest` runs 80 JVM unit tests, all passing:
 
 | Module | Tests | Covers |
 |---|---|---|
 | `core:data` | 40 | search index, grouping, severity stats, mapping, repository caching and failure handling |
 | `core:network` | 6 | remote data source against a fake API, including error mapping |
 | `core:designsystem` | 7 | ring arc geometry |
-| `feature:logs` | 25 | ViewModel state (loading, debounce, latest query wins, filtered ring, errors and retry, details) and UI mapping |
+| `feature:logs` | 27 | ViewModel state (loading, debounce, latest query wins, filtered ring, errors and retry, details) and UI mapping |
 
 Tests use hand-written fakes and Turbine. There is no mocking of the network, and no
 Robolectric, Compose UI or instrumentation tests.
@@ -122,6 +122,9 @@ These are emulator numbers, not a physical device.
 - Search is case-insensitive substring matching, with every space-separated term required. It is
   not fuzzy and does not rank results.
 - The payload has one session, so "group by session" is not exercised.
+- Row times and group headers use the locale's own time style (for example `3:48:17 PM` in en-US),
+  which follows the locale and not the device's 12/24-hour toggle. They are formatted once at load,
+  so a timezone or language change while the app is open shows up after the next load.
 - Checked on an emulator in portrait with the dark theme. Rotation, light theme and a physical
   device were not checked.
 - The UI itself (list, sheet, ring drawing) is verified by hand, not by automated UI tests.

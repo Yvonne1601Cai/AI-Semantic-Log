@@ -38,12 +38,12 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import kotlinx.coroutines.flow.filter
 import com.example.yvonnecai.core.model.LogLoadException
 import com.example.yvonnecai.feature.logs.LogsContent
 import com.example.yvonnecai.feature.logs.LogsUiState
 import com.example.yvonnecai.feature.logs.LogsViewModel
 import com.example.yvonnecai.feature.logs.R
+import kotlinx.coroutines.flow.filter
 
 /** Entry point of the logs screen: connects [LogsViewModel] to the stateless [LogsScreen]. */
 @Composable
@@ -127,6 +127,8 @@ private fun LogsTopBar(
             value = state.query,
             onValueChange = onQueryChange,
             modifier = Modifier.fillMaxWidth(),
+            // Nothing to search while loading or after a failed load.
+            enabled = loaded != null,
             singleLine = true,
             keyboardOptions = KeyboardOptions(imeAction = ImeAction.Search),
             keyboardActions = KeyboardActions(onSearch = { focusManager.clearFocus() }),
