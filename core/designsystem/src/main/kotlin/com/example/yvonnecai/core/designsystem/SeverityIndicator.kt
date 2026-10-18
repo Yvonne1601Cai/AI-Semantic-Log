@@ -13,7 +13,11 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.Immutable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
@@ -57,7 +61,7 @@ data class SeverityRingData(
  * one arc per [Severity] sized by its share, clockwise from 12 o'clock in severity order, with
  * the error density in the centre.
  *
- * Animations: the ring sweeps in once on first composition, and each segment's share and the
+ * Animations: the ring sweeps in once (it does not replay when the item scrolls back into view), and each segment's share and the
  * centre percentage animate with `animateFloatAsState` whenever [data] changes (e.g. while
  * filtering). Exposes a `contentDescription` for accessibility.
  *
@@ -72,9 +76,15 @@ fun SeverityIndicator(
     size: Dp = 132.dp,
     strokeWidth: Dp = 16.dp,
 ) {
-    val reveal = remember { Animatable(0f) }
-    LaunchedEffect(Unit) {
-        reveal.animateTo(1f, tween(durationMillis = INTRO_MILLIS, easing = FastOutSlowInEasing))
+    // Saved so the intro plays once: a LazyColumn item that scrolls away is disposed, and a plain
+    // `remember` would replay the sweep every time it scrolls back into view.
+    var introPlayed by rememberSaveable { mutableStateOf(false) }
+    val reveal = remember { Animatable(if (introPlayed) 1f else 0f) }
+    LaunchedEffect(introPlayed) {
+        if (!introPlayed) {
+            reveal.animateTo(1f, tween(durationMillis = INTRO_MILLIS, easing = FastOutSlowInEasing))
+            introPlayed = true
+        }
     }
 
     // Fixed-size list (enum entries), so the number of animateFloatAsState calls never changes.

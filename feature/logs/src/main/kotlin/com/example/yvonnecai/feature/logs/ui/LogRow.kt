@@ -17,6 +17,7 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontFamily
@@ -45,7 +46,10 @@ fun LogRow(
     Row(
         modifier = modifier
             .fillMaxWidth()
-            .clickable { onClick(row.id) }
+            .clickable(
+                onClickLabel = stringResource(R.string.row_click_label),
+                role = Role.Button,
+            ) { onClick(row.id) }
             .padding(horizontal = 16.dp, vertical = 10.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {

@@ -14,7 +14,8 @@ import java.time.format.DateTimeParseException
  * Entries that cannot be represented (blank id, unparsable timestamp) are dropped instead of
  * failing the whole load. Duplicate ids keep their first occurrence because the id is the
  * `LazyColumn` key and a duplicate would crash the list. The sort is stable, so entries with the
- * same timestamp keep payload order.
+ * same timestamp keep payload order. How many entries were discarded is reported through
+ * [LogDataset.droppedCount] so it is never silent.
  */
 internal fun LogResponseDto.toLogDataset(): LogDataset {
     val entries = data
@@ -25,6 +26,7 @@ internal fun LogResponseDto.toLogDataset(): LogDataset {
         sessionId = sessionId,
         entries = entries,
         index = SearchIndex.build(sessionId, entries),
+        droppedCount = data.size - entries.size,
     )
 }
 

@@ -24,6 +24,7 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -42,6 +43,7 @@ import com.example.yvonnecai.core.designsystem.color
 import com.example.yvonnecai.core.designsystem.labelRes
 import com.example.yvonnecai.feature.logs.LogDetailsUi
 import com.example.yvonnecai.feature.logs.R
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 
 /**
@@ -69,6 +71,15 @@ private fun DetailsContent(details: LogDetailsUi) {
     val clipboard = LocalClipboard.current
     val scope = rememberCoroutineScope()
     var copied by remember(details.id) { mutableStateOf(false) }
+    val copyText = rememberCopyText(details)
+
+    // "Copied" is a short confirmation, not a permanent state.
+    LaunchedEffect(copied) {
+        if (copied) {
+            delay(COPIED_RESET_MILLIS)
+            copied = false
+        }
+    }
 
     Column(
         modifier = Modifier
@@ -93,7 +104,7 @@ private fun DetailsContent(details: LogDetailsUi) {
             TextButton(
                 onClick = {
                     scope.launch {
-                        clipboard.setClipEntry(ClipEntry(ClipData.newPlainText("log entry", details.copyText)))
+                        clipboard.setClipEntry(ClipEntry(ClipData.newPlainText("log entry", copyText)))
                         copied = true
                     }
                 },
@@ -118,20 +129,41 @@ private fun DetailsContent(details: LogDetailsUi) {
 
         HorizontalDivider()
 
-        Text(text = stringResource(R.string.details_raw_metadata), style = MaterialTheme.typography.titleSmall)
+        Text(text = stringResource(R.string.details_metadata), style = MaterialTheme.typography.titleSmall)
         Surface(
             shape = RoundedCornerShape(8.dp),
             color = MaterialTheme.colorScheme.surfaceContainerHighest,
             modifier = Modifier.fillMaxWidth(),
         ) {
             Text(
-                text = details.rawMetadata,
+                text = details.metadataJson,
                 style = MaterialTheme.typography.bodySmall,
                 fontFamily = FontFamily.Monospace,
                 modifier = Modifier.padding(12.dp),
             )
         }
         Spacer(Modifier.height(8.dp))
+    }
+}
+
+/** Plain-text version of the whole entry for the clipboard, with localized labels. */
+@Composable
+private fun rememberCopyText(details: LogDetailsUi): String {
+    val severity = stringResource(details.severity.labelRes)
+    val latency = stringResource(R.string.log_latency_ms, details.latencyMs)
+    val ai = stringResource(if (details.isAiGenerated) R.string.details_yes else R.string.details_no)
+    val labels = listOf(
+        R.string.details_id to details.id,
+        R.string.details_severity to severity,
+        R.string.details_tag to details.tag,
+        R.string.details_timestamp to details.localTime,
+        R.string.details_timestamp_utc to details.utcTime,
+        R.string.details_latency to latency,
+        R.string.details_ai_generated to ai,
+    ).map { (label, value) -> stringResource(label) to value }
+    return buildString {
+        append(details.message)
+        labels.forEach { (label, value) -> append('\n').append(label).append(": ").append(value) }
     }
 }
 
@@ -157,3 +189,5 @@ private fun RowScope.DetailLabel(@StringRes label: Int) {
         modifier = Modifier.width(112.dp),
     )
 }
+
+private const val COPIED_RESET_MILLIS = 2_000L

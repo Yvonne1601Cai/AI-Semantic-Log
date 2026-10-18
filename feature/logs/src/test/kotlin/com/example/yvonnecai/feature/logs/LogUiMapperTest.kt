@@ -61,16 +61,13 @@ class LogUiMapperTest {
     }
 
     @Test
-    fun `details include formatted times raw metadata and copy text`() {
+    fun `details include formatted times and metadata json`() {
         val details = mapper.details(entry("a", Severity.ERROR))
 
         assertEquals("a", details.id)
         assertEquals("2026-01-22T15:48:17.892Z", details.utcTime)
         assertTrue(details.localTime.startsWith("2026-01-22 15:48:17.892"))
-        assertTrue(details.rawMetadata.contains("\"latency_ms\": 2040"))
-        assertTrue(details.rawMetadata.contains("\"is_ai_generated\": true"))
-        assertTrue(details.copyText.startsWith("Connection timed out"))
-        assertTrue(details.copyText.contains("ID: a"))
-        assertTrue(details.copyText.contains("Severity: ERROR"))
+        assertTrue(details.metadataJson.contains("\"latency_ms\": 2040"))
+        assertTrue(details.metadataJson.contains("\"is_ai_generated\": true"))
     }
 }

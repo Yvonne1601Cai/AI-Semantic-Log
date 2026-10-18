@@ -54,30 +54,16 @@ class LogUiMapper @Inject constructor(private val formatters: LogFormatters) {
         )
 
     /** Preformats everything the details sheet needs for [entry]. */
-    fun details(entry: LogEntry): LogDetailsUi {
-        val localTime = formatters.fullLocal(entry.timestamp)
-        val utcTime = entry.timestamp.toString()
-        val rawMetadata = "{\n  \"latency_ms\": ${entry.latencyMs},\n  \"is_ai_generated\": ${entry.isAiGenerated}\n}"
-        val copyText = buildString {
-            appendLine(entry.message)
-            appendLine("ID: ${entry.id}")
-            appendLine("Severity: ${entry.severity.name}")
-            appendLine("Tag: ${entry.tag}")
-            appendLine("Time: $localTime ($utcTime)")
-            appendLine("Latency: ${entry.latencyMs} ms")
-            append("AI generated: ${entry.isAiGenerated}")
-        }
-        return LogDetailsUi(
+    fun details(entry: LogEntry): LogDetailsUi =
+        LogDetailsUi(
             id = entry.id,
             message = entry.message,
             severity = entry.severity,
             tag = entry.tag,
-            localTime = localTime,
-            utcTime = utcTime,
+            localTime = formatters.fullLocal(entry.timestamp),
+            utcTime = entry.timestamp.toString(),
             latencyMs = entry.latencyMs,
             isAiGenerated = entry.isAiGenerated,
-            rawMetadata = rawMetadata,
-            copyText = copyText,
+            metadataJson = "{\n  \"latency_ms\": ${entry.latencyMs},\n  \"is_ai_generated\": ${entry.isAiGenerated}\n}",
         )
-    }
 }

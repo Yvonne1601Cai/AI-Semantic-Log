@@ -1,5 +1,6 @@
 package com.example.yvonnecai.feature.logs
 
+import androidx.lifecycle.SavedStateHandle
 import app.cash.turbine.test
 import com.example.yvonnecai.core.data.LogDataset
 import com.example.yvonnecai.core.data.LogRepository
@@ -53,9 +54,14 @@ class LogsViewModelTest {
     private val dataset = LogDataset("session-666", entries, SearchIndex.build("session-666", entries))
     private val repository = FakeLogRepository { flow { emit(dataset) } }
 
-    private fun viewModel() = LogsViewModel(
+    private val LogsUiState.loaded: LogsContent.Loaded get() = content as LogsContent.Loaded
+    private val LogsUiState.isLoading: Boolean get() = content == LogsContent.Loading
+    private val LogsUiState.errorReason: LogLoadException.Reason? get() = (content as? LogsContent.Error)?.reason
+
+    private fun viewModel(savedStateHandle: SavedStateHandle = SavedStateHandle()) = LogsViewModel(
         repository = repository,
         mapper = LogUiMapper(LogFormatters(ZoneOffset.UTC)),
+        savedStateHandle = savedStateHandle,
         defaultDispatcher = mainDispatcherRule.dispatcher,
     )
 
@@ -76,12 +82,12 @@ class LogsViewModelTest {
             val state = expectMostRecentItem()
 
             assertFalse(state.isLoading)
-            assertEquals("session-666", state.sessionId)
-            assertEquals(3, state.totalCount)
-            assertEquals(3, state.matchCount)
-            assertEquals(2, state.groups.size) // 15:49 and 15:48 buckets
-            assertEquals(listOf("3"), state.groups[0].rows.map { it.id })
-            assertEquals(listOf("2", "1"), state.groups[1].rows.map { it.id })
+            assertEquals("session-666", state.loaded.sessionId)
+            assertEquals(3, state.loaded.totalCount)
+            assertEquals(3, state.loaded.matchCount)
+            assertEquals(2, state.loaded.groups.size) // 15:49 and 15:48 buckets
+            assertEquals(listOf("3"), state.loaded.groups[0].rows.map { it.id })
+            assertEquals(listOf("2", "1"), state.loaded.groups[1].rows.map { it.id })
             cancelAndIgnoreRemainingEvents()
         }
     }
@@ -92,11 +98,11 @@ class LogsViewModelTest {
             advanceUntilIdle()
             val state = expectMostRecentItem()
 
-            assertEquals(2f / 3f, state.ring.errorDensity, 0.0001f)
-            assertEquals(2, state.ring.errorCount)
-            assertEquals(3, state.ring.total)
-            assertEquals(1, state.severityCounts[Severity.FATAL.ordinal])
-            assertEquals(1, state.severityCounts[Severity.INFO.ordinal])
+            assertEquals(2f / 3f, state.loaded.ring.errorDensity, 0.0001f)
+            assertEquals(2, state.loaded.ring.errorCount)
+            assertEquals(3, state.loaded.ring.total)
+            assertEquals(1, state.loaded.severityCounts[Severity.FATAL.ordinal])
+            assertEquals(1, state.loaded.severityCounts[Severity.INFO.ordinal])
             cancelAndIgnoreRemainingEvents()
         }
     }
@@ -105,7 +111,7 @@ class LogsViewModelTest {
     fun `rows are preformatted once at load`() = runTest {
         viewModel().uiState.test {
             advanceUntilIdle()
-            val row = expectMostRecentItem().groups[0].rows.single()
+            val row = expectMostRecentItem().loaded.groups[0].rows.single()
             assertEquals("15:49:05", row.timeText)
             cancelAndIgnoreRemainingEvents()
         }
@@ -123,13 +129,13 @@ class LogsViewModelTest {
             runCurrent()
             val beforeDebounce = expectMostRecentItem()
             assertEquals("auth", beforeDebounce.query)
-            assertEquals(3, beforeDebounce.matchCount)
+            assertEquals(3, beforeDebounce.loaded.matchCount)
 
             advanceTimeBy(1)
             runCurrent()
             val afterDebounce = expectMostRecentItem()
-            assertEquals(2, afterDebounce.matchCount)
-            assertEquals(3, afterDebounce.totalCount)
+            assertEquals(2, afterDebounce.loaded.matchCount)
+            assertEquals(3, afterDebounce.loaded.totalCount)
             cancelAndIgnoreRemainingEvents()
         }
     }
@@ -150,8 +156,8 @@ class LogsViewModelTest {
 
             val state = expectMostRecentItem()
             assertEquals("token", state.query)
-            assertEquals(1, state.matchCount)
-            assertEquals("3", state.groups.single().rows.single().id)
+            assertEquals(1, state.loaded.matchCount)
+            assertEquals("3", state.loaded.groups.single().rows.single().id)
             cancelAndIgnoreRemainingEvents()
         }
     }
@@ -167,8 +173,8 @@ class LogsViewModelTest {
             advanceUntilIdle()
 
             val state = expectMostRecentItem()
-            assertEquals(1, state.ring.total)
-            assertEquals(0f, state.ring.errorDensity, 0f)
+            assertEquals(1, state.loaded.ring.total)
+            assertEquals(0f, state.loaded.ring.errorDensity, 0f)
             cancelAndIgnoreRemainingEvents()
         }
     }
@@ -185,9 +191,9 @@ class LogsViewModelTest {
 
             val state = expectMostRecentItem()
             assertFalse(state.isLoading)
-            assertTrue(state.groups.isEmpty())
-            assertEquals(0, state.matchCount)
-            assertEquals(0, state.ring.total)
+            assertTrue(state.loaded.groups.isEmpty())
+            assertEquals(0, state.loaded.matchCount)
+            assertEquals(0, state.loaded.ring.total)
             cancelAndIgnoreRemainingEvents()
         }
     }
@@ -200,14 +206,14 @@ class LogsViewModelTest {
             expectMostRecentItem()
             vm.onQueryChange("auth")
             advanceUntilIdle()
-            assertEquals(2, expectMostRecentItem().matchCount)
+            assertEquals(2, expectMostRecentItem().loaded.matchCount)
 
             vm.onClearQuery()
             runCurrent() // no time advance: a blank query skips the debounce
 
             val state = expectMostRecentItem()
             assertEquals("", state.query)
-            assertEquals(3, state.matchCount)
+            assertEquals(3, state.loaded.matchCount)
             cancelAndIgnoreRemainingEvents()
         }
     }
@@ -228,7 +234,7 @@ class LogsViewModelTest {
 
             val recovered = expectMostRecentItem()
             assertNull(recovered.errorReason)
-            assertEquals(3, recovered.matchCount)
+            assertEquals(3, recovered.loaded.matchCount)
             assertEquals(2, repository.fetchCount)
             cancelAndIgnoreRemainingEvents()
         }
@@ -272,13 +278,13 @@ class LogsViewModelTest {
 
             vm.onLogClick("2")
             advanceUntilIdle()
-            val open = expectMostRecentItem().details
+            val open = expectMostRecentItem().loaded.details
             assertEquals("2", open?.id)
             assertEquals("User logged in", open?.message)
 
             vm.onDetailsDismiss()
             advanceUntilIdle()
-            assertNull(expectMostRecentItem().details)
+            assertNull(expectMostRecentItem().loaded.details)
             cancelAndIgnoreRemainingEvents()
         }
     }
@@ -293,7 +299,7 @@ class LogsViewModelTest {
             vm.onLogClick("does-not-exist")
             advanceUntilIdle()
             expectNoEvents() // state is unchanged, so nothing is emitted
-            assertNull(vm.uiState.value.details)
+            assertNull(vm.uiState.value.loaded.details)
             cancelAndIgnoreRemainingEvents()
         }
     }
@@ -309,8 +315,51 @@ class LogsViewModelTest {
             advanceUntilIdle()
 
             val state = expectMostRecentItem()
-            assertEquals("1", state.details?.id)
-            assertEquals(2, state.matchCount)
+            assertEquals("1", state.loaded.details?.id)
+            assertEquals(2, state.loaded.matchCount)
+            cancelAndIgnoreRemainingEvents()
+        }
+    }
+
+    @Test
+    fun `a saved query is restored and applied after recreation`() = runTest {
+        val handle = SavedStateHandle(mapOf("query" to "auth"))
+        viewModel(handle).uiState.test {
+            advanceUntilIdle()
+            val state = expectMostRecentItem()
+            assertEquals("auth", state.query)
+            assertEquals(2, state.loaded.matchCount)
+            cancelAndIgnoreRemainingEvents()
+        }
+    }
+
+    @Test
+    fun `typing is written to the saved state`() = runTest {
+        val handle = SavedStateHandle()
+        val vm = viewModel(handle)
+        vm.uiState.test {
+            advanceUntilIdle()
+            vm.onQueryChange("token")
+            advanceUntilIdle()
+            assertEquals("token", handle.get<String>("query"))
+            cancelAndIgnoreRemainingEvents()
+        }
+    }
+
+    @Test
+    fun `retry closes a stale details sheet`() = runTest {
+        val vm = viewModel()
+        vm.uiState.test {
+            advanceUntilIdle()
+            expectMostRecentItem()
+            vm.onLogClick("1")
+            advanceUntilIdle()
+            assertEquals("1", expectMostRecentItem().loaded.details?.id)
+
+            vm.onRetry()
+            advanceUntilIdle()
+
+            assertNull(expectMostRecentItem().loaded.details)
             cancelAndIgnoreRemainingEvents()
         }
     }

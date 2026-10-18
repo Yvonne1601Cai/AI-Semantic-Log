@@ -11,6 +11,8 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.text.KeyboardActions
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -25,15 +27,20 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import kotlinx.coroutines.flow.filter
 import com.example.yvonnecai.core.model.LogLoadException
+import com.example.yvonnecai.feature.logs.LogsContent
 import com.example.yvonnecai.feature.logs.LogsUiState
 import com.example.yvonnecai.feature.logs.LogsViewModel
 import com.example.yvonnecai.feature.logs.R
@@ -77,27 +84,36 @@ fun LogsScreen(
             )
         },
     ) { innerPadding ->
-        when {
-            state.isLoading -> LoadingState(Modifier.padding(innerPadding))
-            state.errorReason != null -> ErrorState(
-                reason = state.errorReason,
+        when (val content = state.content) {
+            LogsContent.Loading -> LoadingState(Modifier.padding(innerPadding))
+            is LogsContent.Error -> ErrorState(
+                reason = content.reason,
                 onRetry = onRetry,
                 modifier = Modifier.padding(innerPadding),
             )
-            else -> LogsList(state = state, onLogClick = onLogClick, contentPadding = innerPadding)
+            is LogsContent.Loaded -> LogsList(
+                content = content,
+                query = state.query,
+                onLogClick = onLogClick,
+                contentPadding = innerPadding,
+            )
         }
     }
 
-    state.details?.let { LogDetailsSheet(details = it, onDismiss = onDetailsDismiss) }
+    (state.content as? LogsContent.Loaded)?.details?.let {
+        LogDetailsSheet(details = it, onDismiss = onDetailsDismiss)
+    }
 }
 
-/** Title, session subtitle and the search field with the result count and a text Clear button. */
+/** Title and the single-line search field with the result count and a text Clear button. */
 @Composable
 private fun LogsTopBar(
     state: LogsUiState,
     onQueryChange: (String) -> Unit,
     onClearQuery: () -> Unit,
 ) {
+    val loaded = state.content as? LogsContent.Loaded
+    val focusManager = LocalFocusManager.current
     Column(
         modifier = Modifier
             .fillMaxWidth()
@@ -107,31 +123,42 @@ private fun LogsTopBar(
         verticalArrangement = Arrangement.spacedBy(8.dp),
     ) {
         Text(text = stringResource(R.string.logs_title), style = MaterialTheme.typography.titleLarge)
-        if (state.sessionId.isNotEmpty()) {
-            Text(
-                text = stringResource(R.string.session_subtitle, state.sessionId),
-                style = MaterialTheme.typography.labelMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-            )
-        }
         OutlinedTextField(
             value = state.query,
             onValueChange = onQueryChange,
             modifier = Modifier.fillMaxWidth(),
             singleLine = true,
+            keyboardOptions = KeyboardOptions(imeAction = ImeAction.Search),
+            keyboardActions = KeyboardActions(onSearch = { focusManager.clearFocus() }),
             shape = RoundedCornerShape(28.dp),
-            placeholder = { Text(stringResource(R.string.search_placeholder)) },
+            placeholder = {
+                Text(
+                    text = stringResource(R.string.search_placeholder),
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                )
+            },
             trailingIcon = {
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    if (!state.isLoading && state.errorReason == null) {
+                // The Clear button brings its own horizontal padding; without it the count would sit
+                // flush against the field's rounded border.
+                val endPadding = if (state.query.isNotEmpty()) 4.dp else 16.dp
+                Row(
+                    modifier = Modifier.padding(end = endPadding),
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    if (loaded != null) {
                         Text(
-                            text = stringResource(R.string.search_result_count, state.matchCount, state.totalCount),
+                            text = stringResource(R.string.search_result_count, loaded.matchCount, loaded.totalCount),
                             style = MaterialTheme.typography.labelMedium,
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            maxLines = 1,
+                            softWrap = false,
                         )
                     }
                     if (state.query.isNotEmpty()) {
-                        TextButton(onClick = onClearQuery) { Text(stringResource(R.string.search_clear)) }
+                        TextButton(onClick = onClearQuery) {
+                            Text(text = stringResource(R.string.search_clear), maxLines = 1, softWrap = false)
+                        }
                     }
                 }
             },
@@ -147,14 +174,18 @@ private fun LogsTopBar(
  */
 @Composable
 private fun LogsList(
-    state: LogsUiState,
+    content: LogsContent.Loaded,
+    query: String,
     onLogClick: (String) -> Unit,
     contentPadding: PaddingValues,
 ) {
     val listState = rememberLazyListState()
     val focusManager = LocalFocusManager.current
-    LaunchedEffect(listState.isScrollInProgress) {
-        if (listState.isScrollInProgress) focusManager.clearFocus()
+    // Collected as a flow so the list itself does not recompose when scrolling starts or stops.
+    LaunchedEffect(listState, focusManager) {
+        snapshotFlow { listState.isScrollInProgress }
+            .filter { it }
+            .collect { focusManager.clearFocus() }
     }
 
     LazyColumn(
@@ -164,17 +195,17 @@ private fun LogsList(
     ) {
         item(key = KEY_SUMMARY, contentType = TYPE_SUMMARY) {
             SeveritySummary(
-                ring = state.ring,
-                severityCounts = state.severityCounts,
+                ring = content.ring,
+                severityCounts = content.severityCounts,
                 modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
             )
         }
 
-        if (state.groups.isEmpty()) {
-            item(key = KEY_EMPTY, contentType = TYPE_EMPTY) { EmptyState(query = state.query) }
+        if (content.groups.isEmpty()) {
+            item(key = KEY_EMPTY, contentType = TYPE_EMPTY) { EmptyState(query = query) }
         }
 
-        state.groups.forEach { group ->
+        content.groups.forEach { group ->
             stickyHeader(key = "group-${group.key}", contentType = TYPE_HEADER) {
                 LogGroupHeader(group)
             }

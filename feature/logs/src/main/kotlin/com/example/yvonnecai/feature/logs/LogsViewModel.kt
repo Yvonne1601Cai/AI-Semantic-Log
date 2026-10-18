@@ -1,12 +1,12 @@
 package com.example.yvonnecai.feature.logs
 
+import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.yvonnecai.core.data.LogDataset
 import com.example.yvonnecai.core.data.LogRepository
-import com.example.yvonnecai.core.data.SeverityStats
 import com.example.yvonnecai.core.data.di.DefaultDispatcher
-import com.example.yvonnecai.core.data.groupByMinute
+import com.example.yvonnecai.core.data.search
 import com.example.yvonnecai.core.designsystem.SeverityRingData
 import com.example.yvonnecai.core.model.LogLoadException
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -48,6 +48,7 @@ import javax.inject.Inject
 class LogsViewModel @Inject constructor(
     private val repository: LogRepository,
     private val mapper: LogUiMapper,
+    savedStateHandle: SavedStateHandle,
     @param:DefaultDispatcher private val defaultDispatcher: CoroutineDispatcher,
 ) : ViewModel() {
 
@@ -68,7 +69,8 @@ class LogsViewModel @Inject constructor(
     )
 
     private val loadState = MutableStateFlow<LoadState>(LoadState.Loading)
-    private val query = MutableStateFlow("")
+    /** Survives process death through [SavedStateHandle]. */
+    private val query = savedStateHandle.getMutableStateFlow(KEY_QUERY, "")
     private val details = MutableStateFlow<LogDetailsUi?>(null)
     private var loadJob: Job? = null
 
@@ -98,20 +100,14 @@ class LogsViewModel @Inject constructor(
     /** Single immutable snapshot consumed by the screen. */
     val uiState: StateFlow<LogsUiState> =
         combine(loadState, query, searchResult, details) { state, currentQuery, result, currentDetails ->
-            when (state) {
-                is LoadState.Loading -> LogsUiState(isLoading = true, query = currentQuery)
-                is LoadState.Failed -> LogsUiState(
-                    isLoading = false,
-                    errorReason = state.reason,
-                    query = currentQuery,
-                )
+            val content = when (state) {
+                is LoadState.Loading -> LogsContent.Loading
+                is LoadState.Failed -> LogsContent.Error(state.reason)
                 // Loaded but the first search has not finished: keep the spinner.
                 is LoadState.Loaded -> if (result == null) {
-                    LogsUiState(isLoading = true, query = currentQuery)
+                    LogsContent.Loading
                 } else {
-                    LogsUiState(
-                        isLoading = false,
-                        query = currentQuery,
+                    LogsContent.Loaded(
                         sessionId = state.dataset.sessionId,
                         totalCount = state.dataset.entries.size,
                         matchCount = result.matchCount,
@@ -122,7 +118,8 @@ class LogsViewModel @Inject constructor(
                     )
                 }
             }
-        }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(STOP_TIMEOUT_MS), LogsUiState())
+            LogsUiState(query = currentQuery, content = content)
+        }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(STOP_TIMEOUT_MS), LogsUiState(query = query.value))
 
     init {
         load()
@@ -159,19 +156,19 @@ class LogsViewModel @Inject constructor(
     }
 
     private fun search(state: LoadState.Loaded, query: String): SearchResult {
-        val dataset = state.dataset
-        val indices = dataset.index.search(query)
-        val stats = SeverityStats.of(dataset.entries, indices)
+        val result = state.dataset.search(query)
         return SearchResult(
-            groups = mapper.groups(groupByMinute(dataset.entries, indices), state.rows),
-            ring = mapper.ring(stats),
-            severityCounts = stats.counts,
-            matchCount = indices.size,
+            groups = mapper.groups(result.groups, state.rows),
+            ring = mapper.ring(result.stats),
+            severityCounts = result.stats.counts,
+            matchCount = result.matchCount,
         )
     }
 
     private fun load() {
         loadJob?.cancel()
+        // A sheet opened for the previous dataset must not outlive a reload.
+        details.value = null
         loadJob = viewModelScope.launch {
             repository.fetchLogs()
                 .map<LogDataset, LoadState> { dataset -> LoadState.Loaded(dataset, mapper.rows(dataset.entries)) }
@@ -186,6 +183,7 @@ class LogsViewModel @Inject constructor(
     }
 
     private companion object {
+        const val KEY_QUERY = "query"
         const val SEARCH_DEBOUNCE_MS = 150L
 
         /** Keeps the upstream alive across configuration changes. */

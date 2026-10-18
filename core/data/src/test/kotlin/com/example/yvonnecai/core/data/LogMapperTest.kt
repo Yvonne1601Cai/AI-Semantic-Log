@@ -91,4 +91,27 @@ class LogMapperTest {
         assertEquals(listOf(1), dataset.index.search("alpha").toList())
         assertEquals(dataset.entries.size, dataset.index.size)
     }
+
+    @Test
+    fun `dropped entries are counted`() {
+        val dataset = LogResponseDto(
+            sessionId = "s",
+            data = listOf(
+                dto(id = "a", timestamp = "2026-01-22T15:48:10Z"),
+                dto(id = "a", timestamp = "2026-01-22T15:48:11Z"), // duplicate id
+                dto(id = "b", timestamp = "nope"), // unparsable timestamp
+                dto(id = " ", timestamp = "2026-01-22T15:48:12Z"), // blank id
+                dto(id = "c", timestamp = "2026-01-22T15:48:13Z"),
+            ),
+        ).toLogDataset()
+
+        assertEquals(2, dataset.entries.size)
+        assertEquals(3, dataset.droppedCount)
+    }
+
+    @Test
+    fun `a clean payload drops nothing`() {
+        val dataset = LogResponseDto(sessionId = "s", data = listOf(dto(id = "a"), dto(id = "b"))).toLogDataset()
+        assertEquals(0, dataset.droppedCount)
+    }
 }

@@ -16,6 +16,10 @@ Coroutines and Flow.
 Requirements: Android Studio with a JDK 17 or newer (the Android Studio bundled JDK 21 was used),
 and an Android SDK with API 36.1 installed. `minSdk` is 26.
 
+From a terminal, Gradle needs a JDK on the path. If `./gradlew` reports "Unable to locate a Java
+Runtime", point `JAVA_HOME` at Android Studio's bundled one, for example
+`export JAVA_HOME="/Applications/Android Studio.app/Contents/jbr/Contents/Home"`.
+
 ```bash
 ./gradlew assembleDebug        # build
 ./gradlew installDebug         # install on a connected device or emulator
@@ -28,7 +32,10 @@ access. There are no API keys or local secrets; the endpoint is a single constan
 
 ## Architecture
 
-Multi-module Clean Architecture with MVVM and a single `StateFlow` of UI state.
+Multi-module Clean Architecture with MVVM and a single `StateFlow` of UI state. The state is a
+`LogsUiState(query, content)` where `content` is a sealed `Loading | Error | Loaded`, so an invalid
+combination (for example loading and error at once) cannot be represented. The search query is kept
+in `SavedStateHandle`, so it survives process death.
 
 ```
 app -> feature:logs -> core:data -> core:network
@@ -45,7 +52,7 @@ their modules.
 | `:app` | Hilt application, single activity, theme wiring. |
 | `:core:model` | Pure Kotlin domain types: `LogEntry`, `Severity`, `LogLoadException`. |
 | `:core:network` | Retrofit service, DTOs, the remote data source. Hides all HTTP and serialization types. |
-| `:core:data` | Repository and cache, search index, minute grouping, severity stats, DTO-to-domain mapping. |
+| `:core:data` | Repository and cache, search index, minute grouping, severity stats, DTO-to-domain mapping. `LogDataset.search(query)` runs search, grouping and stats in one call. |
 | `:core:designsystem` | Theme, severity colors, and the Canvas `SeverityIndicator`. |
 | `:feature:logs` | `LogsViewModel`, UI state, and the Compose screen: list, search field, ring card, details sheet. |
 
@@ -57,7 +64,7 @@ This was checked with a probe reference that failed to compile.
 **Loading.** One streaming GET (`@Streaming`) decodes the body straight from the byte stream with
 `decodeFromStream`, so the 1.4 MB response is never held as a `String`. The payload root is an
 object, so entries cannot be decoded one by one. The repository maps, sorts newest first and
-indexes the result once, then caches it in memory. Failed loads are not cached, so retry works.
+indexes the result once, then caches it in memory. Entries that cannot be used (blank id, unparsable timestamp, duplicate id) are dropped and counted in `LogDataset.droppedCount`. Failed loads are not cached, so retry works.
 
 **Search.** Each entry gets one lowercase text built from its message, tag, severity, session id
 and id. A query is split on whitespace and every term must match (AND). The result is an array of
@@ -67,15 +74,16 @@ the debounce, so Clear is instant), drops stale queries with `mapLatest`, and ru
 injected dispatcher.
 
 **Grouping.** Entries are grouped into 1-minute buckets with sticky headers showing the count and
-the error share. The payload has a single `session_id`, so it is shown once at the top instead of
-being a grouping level.
+the error share. The payload has a single `session_id`, so it is not a grouping level and is not
+shown in the UI (it is still searchable).
 
 **Severity indicator.** A custom Canvas ring with five segments (Debug, Info, Warn, Error, Fatal).
 The center shows the error percentage (Error plus Fatal). It always describes the entries that
 match the current search. The arc geometry is a pure function with its own unit tests.
 
 **Details.** Tapping a row opens a `ModalBottomSheet` with the severity, message, id, local and UTC
-time, tag, latency, AI flag and the raw metadata. Copy puts the whole entry on the clipboard.
+time, tag, latency, AI flag and the metadata fields the app models, shown as JSON. Copy puts the
+whole entry on the clipboard as text with localized labels.
 
 **List performance.** Rows are formatted once at load and reused, so they skip recomposition when
 the filter changes. `LazyColumn` items have stable keys and content types, and the row click
@@ -83,14 +91,14 @@ callback takes a plain id.
 
 ## Testing
 
-`./gradlew testDebugUnitTest` runs 67 JVM unit tests, all passing:
+`./gradlew testDebugUnitTest` runs 78 JVM unit tests, all passing:
 
 | Module | Tests | Covers |
 |---|---|---|
-| `core:data` | 35 | search index, grouping, severity stats, mapping, repository caching and failure handling |
+| `core:data` | 40 | search index, grouping, severity stats, mapping, repository caching and failure handling |
 | `core:network` | 6 | remote data source against a fake API, including error mapping |
 | `core:designsystem` | 7 | ring arc geometry |
-| `feature:logs` | 19 | ViewModel state (loading, debounce, latest query wins, filtered ring, errors and retry, details) and UI mapping |
+| `feature:logs` | 25 | ViewModel state (loading, debounce, latest query wins, filtered ring, errors and retry, details) and UI mapping |
 
 Tests use hand-written fakes and Turbine. There is no mocking of the network, and no
 Robolectric, Compose UI or instrumentation tests.

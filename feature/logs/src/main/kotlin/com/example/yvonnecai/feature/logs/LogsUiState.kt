@@ -45,36 +45,53 @@ data class LogDetailsUi(
     val utcTime: String,
     val latencyMs: Int,
     val isAiGenerated: Boolean,
-    val rawMetadata: String,
-    /** Plain-text version of the whole entry, put on the clipboard by the Copy button. */
-    val copyText: String,
+    /** Pretty-printed JSON of the metadata fields the app models (not the verbatim payload). */
+    val metadataJson: String,
 )
 
 /**
- * Everything the logs screen renders, as one immutable snapshot.
- *
- * Exactly one holds at a time: [isLoading] -> spinner; [errorReason] != null -> error with retry;
- * otherwise content ([groups] may be empty = "no matches").
+ * What the logs screen renders, as one immutable snapshot.
  *
  * @property query text currently in the search field (updates instantly; results lag by the debounce).
- * @property sessionId session id reported by the backend.
- * @property totalCount entries in the whole dataset.
- * @property matchCount entries matching [query].
- * @property groups matching entries grouped by minute, newest first.
- * @property ring data for the severity indicator, computed from the matching entries.
- * @property severityCounts per-severity counts of the matching entries, indexed by [Severity.ordinal].
- * @property details entry whose details sheet is open, or `null`.
+ *   It lives outside [content] because the field stays visible in every state.
+ * @property content the loading, error or loaded body; exactly one at a time by construction.
  */
 @Immutable
 data class LogsUiState(
-    val isLoading: Boolean = true,
-    val errorReason: LogLoadException.Reason? = null,
     val query: String = "",
-    val sessionId: String = "",
-    val totalCount: Int = 0,
-    val matchCount: Int = 0,
-    val groups: List<LogGroupUi> = emptyList(),
-    val ring: SeverityRingData = SeverityRingData.EMPTY,
-    val severityCounts: List<Int> = List(Severity.entries.size) { 0 },
-    val details: LogDetailsUi? = null,
+    val content: LogsContent = LogsContent.Loading,
 )
+
+/** Body of the logs screen. */
+sealed interface LogsContent {
+
+    /** The first load, a retry, or the first search after a load is in flight. */
+    @Immutable
+    data object Loading : LogsContent
+
+    /** The load failed; the screen offers Retry. */
+    @Immutable
+    data class Error(val reason: LogLoadException.Reason) : LogsContent
+
+    /**
+     * Search results. [groups] may be empty, meaning "no matches".
+     *
+     * @property sessionId session id reported by the backend.
+     * @property totalCount entries in the whole dataset.
+     * @property matchCount entries matching the query.
+     * @property groups matching entries grouped by minute, newest first.
+     * @property ring data for the severity indicator, computed from the matching entries.
+     * @property severityCounts per-severity counts of the matching entries, indexed by [Severity.ordinal].
+     * @property details entry whose details sheet is open, or `null`.
+     */
+    @Immutable
+    data class Loaded(
+        val sessionId: String,
+        val totalCount: Int,
+        val matchCount: Int,
+        val groups: List<LogGroupUi>,
+        val ring: SeverityRingData,
+        val severityCounts: List<Int>,
+        val details: LogDetailsUi?,
+    ) : LogsContent
+}
