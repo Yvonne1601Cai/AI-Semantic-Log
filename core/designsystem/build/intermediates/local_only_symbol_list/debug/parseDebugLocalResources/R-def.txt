@@ -1,9 +1,0 @@
-R_DEF: Internal format may change without notice
-local
-string severity_debug
-string severity_error
-string severity_fatal
-string severity_indicator_description
-string severity_indicator_label
-string severity_info
-string severity_warn

@@ -1,2 +1,0 @@
--keep,allowobfuscation,allowshrinking class com.example.yvonnecai.feature.logs.LogsViewModel
--keep,allowobfuscation,allowshrinking class com.example.yvonnecai.feature.logs.LogsViewModel

@@ -1,9 +1,0 @@
-com.example.yvonnecai.feature.logs-pngs-0 /Users/ycai/Documents/YvonneCai/feature/logs/build/generated/res/pngs/debug
-com.example.yvonnecai.feature.logs-updated_navigation_xml-1 /Users/ycai/Documents/YvonneCai/feature/logs/build/generated/updated_navigation_xml/debug
-com.example.yvonnecai.feature.logs-mergeDebugResources-2 /Users/ycai/Documents/YvonneCai/feature/logs/build/intermediates/incremental/debug/mergeDebugResources/merged.dir
-com.example.yvonnecai.feature.logs-mergeDebugResources-3 /Users/ycai/Documents/YvonneCai/feature/logs/build/intermediates/incremental/debug/mergeDebugResources/stripped.dir
-com.example.yvonnecai.feature.logs-debug-4 /Users/ycai/Documents/YvonneCai/feature/logs/build/intermediates/merged_res/debug/mergeDebugResources
-com.example.yvonnecai.feature.logs-debug-5 /Users/ycai/Documents/YvonneCai/feature/logs/build/intermediates/packaged_res/debug/packageDebugResources
-com.example.yvonnecai.feature.logs-debug-6 /Users/ycai/Documents/YvonneCai/feature/logs/src/debug/res
-com.example.yvonnecai.feature.logs-main-7 /Users/ycai/Documents/YvonneCai/feature/logs/src/main/res
-gradleHome-0 /Users/ycai/.gradle
